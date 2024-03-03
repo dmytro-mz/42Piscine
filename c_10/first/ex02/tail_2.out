@@ -1,0 +1,2 @@
+tail: cannot open '../ex01/test_files/unreadable.txt' for reading: Permission denied
+tail: cannot open 'rgnbfd' for reading: No such file or directory

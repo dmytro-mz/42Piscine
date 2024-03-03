@@ -1,0 +1,393 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+
+int validate_rules_str_size(char *argv, int n)
+{
+    int i;
+    
+    i = 0;
+    while (argv[i] != '\0')
+        i++;
+    if (i == n * 8 - 1)
+        return (0);
+    return (-1);
+}
+
+int validate_rules_str(char *argv, int n)
+{
+    int i;
+    int counter;
+    
+    if (validate_rules_str_size(argv, n) == -1)
+        return (-1);
+    counter = 0;
+    i = 0;
+    while (argv[i] != '\0')
+    {
+        if (i % 2 == 0)
+        {
+            if (argv[i] >= '1' && argv[i] <= '0' + n)
+                counter++;
+            else
+                return (-1);
+        }
+        else
+            if (argv[i] != ' ')
+                return (-1);
+        i++;
+    }
+    if (counter != n * 4)
+        return (-1);
+    return (0);
+}
+
+int *parse_rules(char *argv, int n)
+{
+    int i;
+    int *rules;
+    int status;
+    
+    status = validate_rules_str(argv, n);
+    if (status == -1)
+        rules = &status;
+    else
+    {
+        rules = (int *)malloc(n * 4 * 4);
+        i = 0;
+        while (i < n * 4)
+        {
+            rules[i] = argv[i * 2] - '0';
+            i++;
+        }
+    }
+    return (rules);
+}
+
+void print_board(int n, int *board)
+{
+    int i;
+    int j;
+    int char_ind;
+    
+    i = 0;
+    while (i < n)
+    {
+        j = 0;
+        while (j < n)
+        {
+            if (j != 0)
+                write(1, " ", 1);
+            char_ind = board[i * n + j] + '0';
+            write(1, &char_ind, 1);
+            j++;
+        }
+        write(1, "\n", 1);
+        i++;
+    }
+}
+
+void free_mem(int *board, int *rules)
+{
+    if (board != rules)
+    {
+        free(board);
+        free(rules);
+    }
+    else
+        free(board);
+}
+
+void do_on_error(int *board, int *rules)
+{
+    free_mem(board, rules);
+    write(1, "Error\n", 6);
+}
+
+int check_rules_row_left(int n, int *board, int *rules, int row)
+{
+    int counter;
+    int prev_h;
+    int col;
+    
+    counter = 1;
+    prev_h = board[row * n];
+    col = 1;
+    while (col < n)
+    {
+        if (board[row * n + col] > prev_h)
+        {
+            counter++;
+            prev_h = board[row * n + col];
+        }
+        col++;
+    }
+    if (counter != rules[n * 2 + row])
+        return (-1);
+    return (1);
+}
+
+int check_rules_row_right(int n, int *board, int *rules, int row)
+{
+    int counter;
+    int prev_h;
+    int col;
+    
+    counter = 1;
+    prev_h = board[row * n + n - 1];
+    col = n - 2;
+    while (col >= 0)
+    {
+        if (board[row * n + col] > prev_h)
+        {
+            counter++;
+            prev_h = board[row * n + col];
+        }
+        col--;
+    }
+    if (counter != rules[n * 3 + row])
+        return (-1);
+    return (1);
+}
+
+int check_rules_row(int n, int *board, int *rules, int row)
+{
+    if (check_rules_row_left(n, board, rules, row) == -1)
+        return (-1);
+    if (check_rules_row_right(n, board, rules, row) == -1)
+        return (-1);
+    return (1);
+}
+
+int check_rules_col_up(int n, int *board, int *rules, int col)
+{
+    int counter;
+    int prev_h;
+    int row;
+    
+    counter = 1;
+    prev_h = board[col];
+    row = 1;
+    while (row < n)
+    {
+        if (board[row * n + col] > prev_h)
+        {
+            counter++;
+            prev_h = board[row * n + col];
+        }
+        row++;
+    }
+    if (counter != rules[col])
+        return (-1);
+    return (1);
+}
+
+int check_rules_col_down(int n, int *board, int *rules, int col)
+{
+    int counter;
+    int prev_h;
+    int row;
+    
+    counter = 1;
+    prev_h = board[(n - 1) * n + col];
+    row = n - 2;
+    while (row >= 0)
+    {
+        if (board[row * n + col] > prev_h)
+        {
+            counter++;
+            prev_h = board[row * n + col];
+        }
+        row--;
+    }
+    if (counter != rules[n + col])
+        return (-1);
+    return (1);
+}
+
+int check_rules_col(int n, int *board, int *rules, int col)
+{
+    if (check_rules_col_up(n, board, rules, col) == -1)
+        return (-1);
+    if (check_rules_col_down(n, board, rules, col) == -1)
+        return (-1);
+    return (1);
+}
+
+int check_unique_values_row(int n, int *board, int row)
+{
+    int col;
+    int val;
+    int is_found;
+    
+    val = 1;
+    while (val <= n)
+    {
+        is_found = 0;
+        col = 0;
+        while (col < n)
+        {
+            if (board[row * n + col] == val)
+            {
+                is_found = 1;
+                break ;
+            }
+            col++;
+        }
+        if (is_found == 0)
+            return (-1);
+        val++;
+    }
+    return (1);
+}
+
+int check_unique_values_col(int n, int *board, int col)
+{
+    int row;
+    int val;
+    int is_found;
+    
+    val = 1;
+    while (val <= n)
+    {
+        is_found = 0;
+        row = 0;
+        while (row < n)
+        {
+            if (board[row * n + col] == val)
+            {
+                is_found = 1;
+                break ;
+            }
+            row++;
+        }
+        if (is_found == 0)
+            return (-1);
+        val++;
+    }
+    return (1);
+}
+
+int check_solution(int n, int *board, int *rules)
+{
+    int i;
+    
+    i = 0;
+    while (i < n)
+    {
+        if (check_unique_values_row(n, board, i) == -1)
+            return (-1);
+        if (check_rules_row(n, board, rules, i) == -1)
+            return (-1);
+        if (check_unique_values_col(n, board, i) == -1)
+            return (-1);
+        if (check_rules_col(n, board, rules, i) == -1)
+            return (-1);
+        i++;
+    }
+    return (1);
+}
+
+int is_valid_val(int n, int *board, int *rules, int row, int col)
+{
+    int i;
+    
+    i = 0;
+    while (i < col)
+    {
+        if (board[row * n + col] == board[row * n + i])
+            return (-1);
+        i++;
+    }
+    i = 0;
+    while (i < row)
+    {
+        if (board[row * n + col] == board[i * n + col])
+            return (-1);
+        i++;
+    }
+    if (col == n - 1)
+        if (check_rules_row(n, board, rules, row) == -1)
+            return (-1);
+    if (row == n - 1)
+        if (check_rules_col(n, board, rules, col) == -1)
+            return (-1);
+    return (1);
+    
+}
+
+void assign_next_row_col(int row_col[2], int row, int col, int n)
+{
+    row_col[0] = row;
+    row_col[1] = col + 1;
+    if (row_col[1] >= n)
+    {
+        row_col[0]++;
+        row_col[1] = 0;
+    }
+}
+
+int find_solution(int n, int *board, int *rules, int row, int col)
+{
+    int val;
+    int res;
+    int row_col[2];
+    
+    assign_next_row_col(row_col, row, col, n);
+    val = 1;
+    while (val <= n)
+    {
+        board[row * n + col] = val;
+        if (is_valid_val(n, board, rules, row, col) == 1)
+        {
+            if (row == n - 1 && col == n - 1)
+                return (1);
+            else
+            {
+                res = find_solution(n, board, rules, row_col[0], row_col[1]);
+            }
+            if (res == 1)
+                return (1);
+        }
+        val++;
+    }
+    return (0);
+}
+
+int check_argc(int argc)
+{
+	if (argc != 2)
+    {
+        write(1, "Error\n", 6);
+        return (-1);
+    }
+	return (1);
+}
+
+int main(int argc, char *argv[])
+{
+    int *board;
+    int *rules;
+	int n;
+
+	n = 4;    
+	if (check_argc(argc) == -1)
+		return (-1);
+    board = (int *)malloc(n * n * 4);
+    rules = parse_rules(argv[1], n);
+    if (rules[0] == -1)
+    {
+        do_on_error(board, board);
+        return (-1);
+    }
+    find_solution(n, board, rules, 0, 0);
+    if (check_solution(n, board, rules) == 1)
+        print_board(n, board);
+    else
+    {
+        do_on_error(board, rules);
+        return (-1);
+    }
+    free_mem(board, rules);
+    return (0);
+}
